@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Task Manager</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: system-ui; }
+        .dragging { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        const CheckCircle = ({size = 20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const Clock = ({size = 20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+        const AlertCircle = ({size = 20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
+        const Plus = ({size = 20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+        const Trash = ({size = 18}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+        const Target = ({size = 32}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>;
+
+        const TaskManager = () => {
+          const [tasks, setTasks] = useState([
+            { id: 1, title: "Design landing page mockups", status: "todo", priority: "high", dueDate: "2025-11-15" },
+            { id: 2, title: "Implement user authentication", status: "inprogress", priority: "high", dueDate: "2025-11-14" },
+            { id: 3, title: "Write API documentation", status: "inprogress", priority: "medium", dueDate: "2025-11-16" },
+            { id: 4, title: "Set up database schema", status: "done", priority: "high", dueDate: "2025-11-10" },
+            { id: 5, title: "Create unit tests", status: "todo", priority: "medium", dueDate: "2025-11-18" },
+            { id: 6, title: "Deploy to staging", status: "done", priority: "low", dueDate: "2025-11-09" }
+          ]);
+          const [newTask, setNewTask] = useState("");
+          const [newPriority, setNewPriority] = useState("medium");
+          const [newDate, setNewDate] = useState("");
+
+          const addTask = () => {
+            if (!newTask.trim()) return;
+            setTasks([...tasks, {
+              id: Date.now(),
+              title: newTask,
+              status: "todo",
+              priority: newPriority,
+              dueDate: newDate || new Date().toISOString().split('T')[0]
+            }]);
+            setNewTask("");
+            setNewPriority("medium");
+            setNewDate("");
+          };
+
+          const moveTask = (taskId, newStatus) => {
+            setTasks(tasks.map(task => 
+              task.id === taskId ? { ...task, status: newStatus } : task
+            ));
+          };
+
+          const deleteTask = (taskId) => {
+            setTasks(tasks.filter(task => task.id !== taskId));
+          };
+
+          const getTasksByStatus = (status) => {
+            return tasks.filter(task => task.status === status);
+          };
+
+          const priorityColors = {
+            high: 'bg-red-100 text-red-800 border-red-300',
+            medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            low: 'bg-green-100 text-green-800 border-green-300'
+          };
+
+          const TaskCard = ({ task }) => (
+            <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500 mb-3 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-gray-800 flex-1">{task.title}</h3>
+                <button onClick={() => deleteTask(task.id)} className="text-red-500 hover:text-red-700 ml-2">
+                  <Trash size={16} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`px-2 py-1 rounded text-xs font-semibold border ${priorityColors[task.priority]}`}>
+                  {task.priority}
+                </span>
+                <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <Clock size={14} />
+                  {new Date(task.dueDate).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {task.status !== 'todo' && (
+                  <button onClick={() => moveTask(task.id, 'todo')} className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">← To Do</button>
+                )}
+                {task.status !== 'inprogress' && (
+                  <button onClick={() => moveTask(task.id, 'inprogress')} className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">⟳ Progress</button>
+                )}
+                {task.status !== 'done' && (
+                  <button onClick={() => moveTask(task.id, 'done')} className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200">✓ Done</button>
+                )}
+              </div>
+            </div>
+          );
+
+          const Column = ({ title, status, icon: Icon, color }) => {
+            const columnTasks = getTasksByStatus(status);
+            return (
+              <div className="bg-gray-50 rounded-xl p-4 min-h-[500px]">
+                <div className={`flex items-center gap-2 mb-4 pb-3 border-b-2 ${color}`}>
+                  <Icon />
+                  <h2 className="font-bold text-gray-800 text-lg">{title}</h2>
+                  <span className="ml-auto bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-sm font-semibold">
+                    {columnTasks.length}
+                  </span>
+                </div>
+                <div>
+                  {columnTasks.map(task => <TaskCard key={task.id} task={task} />)}
+                  {columnTasks.length === 0 && (
+                    <div className="text-center text-gray-400 py-8">
+                      <p className="text-sm">No tasks here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          const stats = {
+            total: tasks.length,
+            todo: getTasksByStatus('todo').length,
+            inProgress: getTasksByStatus('inprogress').length,
+            done: getTasksByStatus('done').length,
+            completion: tasks.length > 0 ? Math.round((getTasksByStatus('done').length / tasks.length) * 100) : 0
+          };
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-8">
+              <div className="max-w-7xl mx-auto">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-3 rounded-lg">
+                      <Target className="text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold text-gray-800">Project Task Manager</h1>
+                      <p className="text-gray-600">Organize and track your project tasks</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                    <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-purple-500">
+                      <div className="text-sm text-gray-600 mb-1">Total Tasks</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-orange-500">
+                      <div className="text-sm text-gray-600 mb-1">To Do</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.todo}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-blue-500">
+                      <div className="text-sm text-gray-600 mb-1">In Progress</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.inProgress}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-green-500">
+                      <div className="text-sm text-gray-600 mb-1">Completed</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.done}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-indigo-500">
+                      <div className="text-sm text-gray-600 mb-1">Completion</div>
+                      <div className="text-2xl font-bold text-gray-800">{stats.completion}%</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
+                    <h3 className="font-bold text-gray-800 mb-3">Add New Task</h3>
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={newTask}
+                        onChange={(e) => setNewTask(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                        placeholder="Enter task description..."
+                        className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                      />
+                      <select
+                        value={newPriority}
+                        onChange={(e) => setNewPriority(e.target.value)}
+                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                      <input
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={addTask}
+                        className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700"
+                      >
+                        <Plus /> Add Task
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Column 
+                    title="To Do" 
+                    status="todo" 
+                    icon={AlertCircle}
+                    color="border-orange-400"
+                  />
+                  <Column 
+                    title="In Progress" 
+                    status="inprogress" 
+                    icon={Clock}
+                    color="border-blue-400"
+                  />
+                  <Column 
+                    title="Done" 
+                    status="done" 
+                    icon={CheckCircle}
+                    color="border-green-400"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<TaskManager />, document.getElementById('root'));
+    </script>
+</body>
+</html>
